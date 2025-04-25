@@ -33,9 +33,15 @@ export default function Home() {
                   <Button size="lg" className="bg-cyan-500 hover:bg-cyan-600">
                     Learn More <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <Button size="lg" variant="outline" className="bg-white/10 text-white border-white hover:bg-white/20">
-                    Contact Us
-                  </Button>
+                  <Link href="#contact">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="bg-white/10 text-white border-white hover:bg-white/20"
+                    >
+                      Contact Us
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -187,7 +193,7 @@ export default function Home() {
 
           <div className="text-center mt-12">
             <Link href="/services">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/20">
+              <Button size="lg" variant="outline" className="bg-white text-cyan-600 border-white hover:bg-white/90">
                 Explore Our Services
               </Button>
             </Link>

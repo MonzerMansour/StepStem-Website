@@ -28,11 +28,11 @@ export default function Header() {
         { name: "Environment", href: "/about/environment" },
       ],
     },
-    { name: "Our Services", href: "/services", highlight: true },
+    { name: "Our Services", href: "/services" },
     { name: "News", href: "/news" },
-    { name: "California Chapter", href: "/california", highlight: true },
+    { name: "California Chapter", href: "/california" },
     { name: "Reviews", href: "/reviews" },
-    { name: "Contact", href: "/contact", highlight: true },
+    { name: "Contact", href: "/#contact", highlight: true },
   ]
 
   return (
