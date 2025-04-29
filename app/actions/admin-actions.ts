@@ -171,3 +171,18 @@ export async function updateCaliforniaStats(formData: FormData) {
     return { success: false, error: "Failed to update stats" }
   }
 }
+
+export async function updateStats(stats: {
+  schools: string
+  students: string
+  volunteers: string
+  countries: string
+}) {
+  console.log("Updating stats with:", stats)
+  return { success: true }
+}
+
+export async function resetStats() {
+  console.log("Resetting stats")
+  return { success: true }
+}
