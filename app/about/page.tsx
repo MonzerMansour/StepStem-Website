@@ -42,25 +42,25 @@ export default function AboutPage() {
                 At StepSTEM Educational Program, we believe that children are the future, and it's our duty to enlighten
                 and educate them. Our mission is to provide a fun and interactive environment where they can learn about
                 STEM-related topics while gaining knowledge that will benefit them for life. Our program is specifically
-                designed to introduce them to STEM-related topics, particularly the environment and how to save it. We
-                recognize the importance of cultivating the next generation of innovators, and with our program, we aim
-                to do just that.
+                designed to introduce STEM-related topics, particularly the environment and how to save it. We recognize
+                the importance of cultivating the next generation of innovators, and with our program, we aim to do just
+                that.
               </p>
 
               <p>
                 We offer an immersive experience that is focused on the students, providing them with the knowledge they
-                need to be successful in life. Our lessons are engaging, fun, and interactive, cultivating to the
-                students' needs. Visit our services page to learn more about how we can help your child grasp the
-                concepts of science, technology, engineering, and mathematics, and inspire them to become the next
-                generation of innovators.
+                need to be successful in life. Our lessons are engaging, fun, interactive, and tailored to the students'
+                needs. Visit our services page to learn more about how we can help your child grasp the concepts of
+                science, technology, engineering, mathematics, and inspire them to become the next generation of
+                innovators.
               </p>
 
               <p>
                 StepSTEM Educational Program started as a passion project between two middle schoolers who wanted to
                 make a difference in their community. What began as an initiative to teach second graders at their local
                 elementary school grew into something much bigger. We have developed into a program that hopes to impact
-                children all around the Bay Area! At StepSTEM, we believe that every child deserves access to the
-                limitless opportunities that STEM can provide. Join us on this journey of discovery and exploration!
+                children worldwide! At StepSTEM, we believe that every child deserves access to the limitless
+                opportunities that STEM can provide. Join us on this journey of discovery and exploration!
               </p>
             </div>
 
@@ -93,9 +93,9 @@ export default function AboutPage() {
           <div className="max-w-3xl mx-auto mt-12">
             <div className="prose prose-lg max-w-none">
               <p className="text-center">
-                We believe that by fostering a deep connection to the natural world and an understanding of
-                environmental issues at a young age, we can inspire the next generation of environmental stewards who
-                will work to protect and preserve our planet for future generations.
+                We believe that by fostering a deep connection to the planet and an understanding of environmental
+                issues at a young age, we can inspire the next generation of environmental stewards who will work to
+                protect and preserve our planet for future generations.
               </p>
             </div>
           </div>

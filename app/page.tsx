@@ -1,3 +1,6 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
@@ -6,11 +9,125 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import StatCard from "@/components/stat-card"
 import ContactForm from "@/components/contact-form"
+import ScrollIndicator from "@/components/scroll-indicator"
+import TypedText from "@/components/typed-text"
+import { getHomepageStatsFromKV } from "./actions/admin-actions"
+
+// Default stats
+const DEFAULT_STATS = {
+  schoolsVisited: 8,
+  classesTaught: 20,
+  studentsInspired: 500,
+}
 
 export default function Home() {
+  const [stats, setStats] = useState(DEFAULT_STATS)
+  const [isLoading, setIsLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // Function to load stats
+  const loadStats = async () => {
+    try {
+      setIsLoading(true)
+      const homeStats = await getHomepageStatsFromKV()
+      console.log("Homepage: Fetched homepage stats from server action:", homeStats)
+
+      if (homeStats && typeof homeStats.schoolsVisited === "number") {
+        // If stats have changed, update the refresh key to force re-render of StatCard components
+        if (
+          homeStats.schoolsVisited !== stats.schoolsVisited ||
+          homeStats.classesTaught !== stats.classesTaught ||
+          homeStats.studentsInspired !== stats.studentsInspired
+        ) {
+          setStats(homeStats)
+          setRefreshKey((prev) => prev + 1)
+        }
+      } else {
+        console.error("Invalid stats data received:", homeStats)
+        // If we get invalid data, use the default stats
+        setStats(DEFAULT_STATS)
+      }
+    } catch (error) {
+      console.error("Error loading stats:", error)
+      // If there's an error, use the default stats
+      setStats(DEFAULT_STATS)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Load stats on component mount
+  useEffect(() => {
+    loadStats()
+
+    // Set up an interval to periodically check for updates (every 30 seconds)
+    const intervalId = setInterval(loadStats, 30000)
+
+    // Clean up the interval when component unmounts
+    return () => clearInterval(intervalId)
+  }, [])
+
+  // Listen for localStorage changes from admin page
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "stats_updated") {
+        console.log("Homepage: Detected stats update, refreshing data")
+        loadStats()
+      }
+    }
+
+    // Add event listener for storage changes
+    window.addEventListener("storage", handleStorageChange)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+    }
+  }, [])
+
+  // Stats section with dynamic data
+  const renderStatsSection = () => {
+    return (
+      <section className="py-12 md:py-20">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard
+              key={`schools-${refreshKey}`}
+              number={stats.schoolsVisited.toString()}
+              label="Schools Visited"
+              bgColor="bg-black"
+              textColor="text-white"
+            />
+            <StatCard
+              key={`classes-${refreshKey}`}
+              number={`${stats.classesTaught}+`}
+              label="Classes Taught"
+              bgColor="bg-cyan-500"
+              textColor="text-white"
+            />
+            <StatCard
+              key={`students-${refreshKey}`}
+              number={`${stats.studentsInspired}+`}
+              label="Students Inspired"
+              bgColor="bg-black"
+              textColor="text-white"
+            />
+            <StatCard
+              key={`future-${refreshKey}`}
+              number="1"
+              label="Future To Work Towards"
+              bgColor="bg-cyan-500"
+              textColor="text-white"
+            />
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <>
       <section className="relative overflow-hidden">
+        {/* Hero section content remains the same */}
         <div className="relative">
           <div className="relative h-[500px] md:h-[600px] w-full">
             <Image src="/images/classroom.png" alt="StepSTEM classroom" fill className="object-cover" priority />
@@ -19,10 +136,21 @@ export default function Home() {
           <div className="absolute inset-0 flex items-center">
             <div className="container mx-auto px-4">
               <div className="max-w-2xl">
-                <h1 className="text-5xl md:text-6xl font-bold mb-4">
+                <h1 className="text-3xl md:text-4xl font-bold mb-2">
                   <span className="text-white">Step</span>
                   <span className="text-cyan-400">STEM</span>
                 </h1>
+                <TypedText
+                  messages={[
+                    "Ignite Curiosity",
+                    "Foster Innovation",
+                    "Interactive Education",
+                    "Advance Learning",
+                    "Spark Change",
+                    "Fuel Exploration",
+                  ]}
+                  className="text-3xl md:text-5xl font-bold mb-4"
+                />
                 <p className="text-white text-lg md:text-xl mb-8 bg-black/30 p-4 rounded-md">
                   Our dynamic StepSTEM educational program is dedicated to igniting curiosity and fostering innovation
                   among young learners. Partner with us to bring engaging and interactive STEM education to your
@@ -30,9 +158,11 @@ export default function Home() {
                   technology, engineering, and mathematics.
                 </p>
                 <div className="flex flex-wrap gap-4">
-                  <Button size="lg" className="bg-cyan-500 hover:bg-cyan-600">
-                    Learn More <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
+                  <Link href="/services">
+                    <Button size="lg" className="bg-cyan-500 hover:bg-cyan-600">
+                      Learn More <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
                   <Link href="#contact">
                     <Button
                       size="lg"
@@ -46,20 +176,14 @@ export default function Home() {
               </div>
             </div>
           </div>
+          <ScrollIndicator />
         </div>
       </section>
 
-      <section className="py-12 md:py-20">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard number="07" label="Schools Visited" bgColor="bg-black" textColor="text-white" />
-            <StatCard number="17" label="Classes Taught" bgColor="bg-cyan-500" textColor="text-white" />
-            <StatCard number="400+" label="Students Inspired" bgColor="bg-black" textColor="text-white" />
-            <StatCard number="1" label="Future To Work Towards" bgColor="bg-cyan-500" textColor="text-white" />
-          </div>
-        </div>
-      </section>
+      {/* Render the stats section */}
+      {renderStatsSection()}
 
+      {/* Rest of the homepage content remains the same */}
       <section className="py-16 md:py-24 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-12">
@@ -110,7 +234,7 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="bg-white/10 border-none shadow-lg hover:bg-white/20 transition-all">
-              <CardContent className="p-6">
+              <CardContent className="p-6 text-white">
                 <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center mb-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -122,14 +246,14 @@ export default function Home() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="h-6 w-6"
+                    className="h-6 w-6 text-white"
                   >
                     <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
                     <path d="M6 12v5c3 3 9 3 12 0v-5" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold mb-2">Interactive Lessons</h3>
-                <p>
+                <h3 className="text-xl font-bold mb-2 text-white">Interactive Lessons</h3>
+                <p className="text-white">
                   Our unique and interactive lesson plan is designed to teach students about complex topics in an
                   engaging and fun way.
                 </p>
@@ -137,7 +261,7 @@ export default function Home() {
             </Card>
 
             <Card className="bg-white/10 border-none shadow-lg hover:bg-white/20 transition-all">
-              <CardContent className="p-6">
+              <CardContent className="p-6 text-white">
                 <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center mb-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -149,14 +273,14 @@ export default function Home() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="h-6 w-6"
+                    className="h-6 w-6 text-white"
                   >
                     <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
                     <polyline points="14 2 14 8 20 8" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold mb-2">Lesson Plans</h3>
-                <p>
+                <h3 className="text-xl font-bold mb-2 text-white">Lesson Plans</h3>
+                <p className="text-white">
                   We provide comprehensive lesson plans that educators can use to teach STEM concepts in their
                   classrooms.
                 </p>
@@ -164,7 +288,7 @@ export default function Home() {
             </Card>
 
             <Card className="bg-white/10 border-none shadow-lg hover:bg-white/20 transition-all">
-              <CardContent className="p-6">
+              <CardContent className="p-6 text-white">
                 <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center mb-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -176,14 +300,14 @@ export default function Home() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="h-6 w-6"
+                    className="h-6 w-6 text-white"
                   >
                     <path d="M18 8a6 6 0 0 0-6-6 6 6 0 0 0-6 6c0 7 6 13 6 13s6-6 6-13Z" />
                     <circle cx="12" cy="8" r="2" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold mb-2">School Visits</h3>
-                <p>
+                <h3 className="text-xl font-bold mb-2 text-white">School Visits</h3>
+                <p className="text-white">
                   We visit schools to deliver hands-on STEM activities and experiments that make learning fun and
                   memorable.
                 </p>
@@ -223,8 +347,11 @@ export default function Home() {
 
               <div className="flex justify-center gap-4 mt-6">
                 <a
-                  href="#"
+                  href="https://www.instagram.com/step_stem_/"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-cyan-500 transition-colors"
+                  aria-label="StepSTEM Instagram"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -244,8 +371,11 @@ export default function Home() {
                   </svg>
                 </a>
                 <a
-                  href="#"
+                  href="https://www.facebook.com/people/StepStem/61561957779641/"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-cyan-500 transition-colors"
+                  aria-label="StepSTEM Facebook"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
