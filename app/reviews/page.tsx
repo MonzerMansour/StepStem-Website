@@ -1,11 +1,12 @@
 import Image from "next/image"
 import { Star } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { getAllReviews, initializeReviews } from "../actions/review-actions"
 
-// Define review data with the actual testimonials
-const reviews = [
+// Default reviews for initialization
+const DEFAULT_REVIEWS = [
   {
-    id: 1,
+    id: "1",
     name: "Principal Leanna Goldenberg",
     role: "Principal",
     school: "Montague Elementary School",
@@ -15,7 +16,7 @@ const reviews = [
     date: "August 25, 2023",
   },
   {
-    id: 2,
+    id: "2",
     name: "Montague Weekly Newsletter",
     school: "Montague Elementary School",
     content:
@@ -25,7 +26,7 @@ const reviews = [
     source: "Montague Weekly Newsletter",
   },
   {
-    id: 3,
+    id: "3",
     name: "Principal Leanna Goldenberg",
     role: "Principal",
     school: "Montague Elementary School",
@@ -35,7 +36,7 @@ const reviews = [
     date: "March 15, 2024",
   },
   {
-    id: 4,
+    id: "4",
     name: "Ms. Nina Paoloni",
     role: "Teacher",
     school: "Stratford Pomeroy Elementary",
@@ -45,7 +46,7 @@ const reviews = [
     date: "February 8, 2024",
   },
   {
-    id: 5,
+    id: "5",
     name: "Ms. Saravanan",
     role: "Teacher",
     school: "Stratford Winchester Elementary",
@@ -56,7 +57,13 @@ const reviews = [
   },
 ]
 
-export default function ReviewsPage() {
+export default async function ReviewsPage() {
+  // Initialize reviews with default data if they don't exist
+  await initializeReviews(DEFAULT_REVIEWS)
+
+  // Get all reviews from the database
+  const reviews = await getAllReviews()
+
   return (
     <>
       <section className="relative overflow-hidden">
@@ -109,7 +116,8 @@ export default function ReviewsPage() {
                       <div>
                         <h3 className="font-bold">{review.name}</h3>
                         <p className="text-sm text-gray-500">
-                          {review.role} at {review.school}
+                          {review.role && `${review.role} at `}
+                          {review.school}
                         </p>
                         {review.source && <p className="text-xs text-gray-500">Source: {review.source}</p>}
                       </div>
@@ -140,8 +148,10 @@ export default function ReviewsPage() {
                 Please contact us to share your feedback.
               </p>
               <a
-                href="/#contact"
+                href="https://docs.google.com/forms/d/e/1FAIpQLSdRPfjvhGSpwJsLqVGKCGtF8IyGDOy0m4YHIkw6_zY8zGtlAA/viewform?usp=sharing"
                 className="inline-block bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-md"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 Submit Your Review
               </a>
