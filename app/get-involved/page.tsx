@@ -11,8 +11,8 @@ export default function GetInvolvedPage() {
         <div className="relative">
           <div className="relative h-[400px] w-full">
             <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_8198-WgW4dVqO29KLMU8ZrOmDzqb2AAl78M.jpeg"
-              alt="StepSTEM educator teaching a classroom of students about oil spills and environmental science"
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_8198-OW5gwl6gk6pRfC09uKm01TF9hdZ7RQ.jpeg"
+              alt="StepSTEM educator teaching a classroom of elementary students about oil spills and environmental science"
               fill
               className="object-cover"
               priority
