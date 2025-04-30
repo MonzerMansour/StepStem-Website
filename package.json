@@ -64,8 +64,7 @@
     "uuid": "latest",
     "swr": "latest",
     "@upstash/redis": "latest",
-    "@vercel/kv": "latest",
-    "nanoid": "latest"
+    "@vercel/kv": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

@@ -128,18 +128,11 @@ export default function DonatePage() {
                   </p>
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold mb-2">Can I make a recurring donation?</h4>
+                  <h4 className="text-xl font-bold mb-2">How are my donations used?</h4>
                   <p className="text-gray-700">
-                    Yes! Once our donation system is fully set up, you'll be able to choose between one-time and
-                    recurring donations. Recurring donations help us plan for the future and sustain our programs.
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold mb-2">How will I know my donation is making an impact?</h4>
-                  <p className="text-gray-700">
-                    All donors receive updates on our programs and the impact of their contributions. Depending on your
-                    donation level, you'll receive quarterly newsletters, impact reports, and stories from the schools
-                    we serve.
+                    We use donations for supplies and programs to further our organization. Your contributions directly
+                    support our educational initiatives, allowing us to purchase necessary materials, develop
+                    curriculum, and bring STEM education to more students across different communities.
                   </p>
                 </div>
                 <div>
