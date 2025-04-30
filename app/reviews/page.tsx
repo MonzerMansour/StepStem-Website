@@ -2,9 +2,10 @@ import Image from "next/image"
 import { Star } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { getAllReviews, initializeReviews } from "../actions/review-actions"
+import type { Review } from "../types/review"
 
 // Default reviews for initialization
-const DEFAULT_REVIEWS = [
+const DEFAULT_REVIEWS: Review[] = [
   {
     id: "1",
     name: "Principal Leanna Goldenberg",

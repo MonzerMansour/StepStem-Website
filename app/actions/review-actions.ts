@@ -1,154 +1,110 @@
 "use server"
 
 import { kv } from "@vercel/kv"
-import { z } from "zod"
-import { revalidatePath } from "next/cache"
+import { nanoid } from "nanoid"
 
-// Define the schema for reviews
-export const reviewSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(1, "Name is required"),
-  role: z.string().optional(),
-  school: z.string().min(1, "School is required"),
-  content: z.string().min(1, "Content is required"),
-  rating: z.number().min(1).max(5),
-  date: z.string(),
-  source: z.string().optional(),
-})
+export interface Review {
+  id: string
+  name: string
+  role?: string
+  school: string
+  content: string
+  rating: number
+  date: string
+  source?: string
+}
 
-export type Review = z.infer<typeof reviewSchema>
+const REVIEWS_KEY = "reviews"
 
-// Get all reviews
 export async function getAllReviews(): Promise<Review[]> {
   try {
-    const reviews = await kv.get<Review[]>("reviews")
-    return reviews || []
+    const reviews = (await kv.get<Review[]>(REVIEWS_KEY)) || []
+    return reviews
   } catch (error) {
     console.error("Error fetching reviews:", error)
     return []
   }
 }
 
-// Add a new review
 export async function addReview(formData: FormData): Promise<{ success: boolean; error?: string }> {
   try {
-    // Parse and validate the form data
-    const rawData = {
-      name: formData.get("name") as string,
-      role: formData.get("role") as string,
-      school: formData.get("school") as string,
-      content: formData.get("content") as string,
-      rating: Number(formData.get("rating")),
-      date: formData.get("date") as string,
-      source: formData.get("source") as string,
+    const name = formData.get("name") as string
+    const role = formData.get("role") as string | undefined
+    const school = formData.get("school") as string
+    const content = formData.get("content") as string
+    const rating = Number(formData.get("rating"))
+    const date = formData.get("date") as string
+    const source = formData.get("source") as string | undefined
+
+    if (!name || !school || !content || !rating || !date) {
+      return { success: false, error: "Missing required fields" }
     }
 
-    // Validate the data
-    const validatedData = reviewSchema.parse(rawData)
-
-    // Get existing reviews
-    const existingReviews = await getAllReviews()
-
-    // Generate a unique ID for the new review
     const newReview: Review = {
-      ...validatedData,
-      id: crypto.randomUUID(),
+      id: nanoid(),
+      name,
+      role,
+      school,
+      content,
+      rating,
+      date,
+      source,
     }
 
-    // Add the new review to the list
-    const updatedReviews = [...existingReviews, newReview]
+    const reviews = await getAllReviews()
+    const updatedReviews = [...reviews, newReview]
 
-    // Save to KV
-    await kv.set("reviews", updatedReviews)
-
-    // Revalidate the reviews page
-    revalidatePath("/reviews")
-
+    await kv.set(REVIEWS_KEY, updatedReviews)
     return { success: true }
   } catch (error) {
     console.error("Error adding review:", error)
-    return {
-      success: false,
-      error:
-        error instanceof z.ZodError
-          ? error.errors.map((e) => `${e.path}: ${e.message}`).join(", ")
-          : "Failed to add review",
-    }
+    return { success: false, error: "Failed to add review" }
   }
 }
 
-// Update an existing review
 export async function updateReview(formData: FormData): Promise<{ success: boolean; error?: string }> {
   try {
     const id = formData.get("id") as string
+    const name = formData.get("name") as string
+    const role = formData.get("role") as string | undefined
+    const school = formData.get("school") as string
+    const content = formData.get("content") as string
+    const rating = Number(formData.get("rating"))
+    const date = formData.get("date") as string
+    const source = formData.get("source") as string | undefined
 
-    if (!id) {
-      return { success: false, error: "Review ID is required" }
+    if (!id || !name || !school || !content || !rating || !date) {
+      return { success: false, error: "Missing required fields" }
     }
 
-    // Parse and validate the form data
-    const rawData = {
+    const updatedReview: Review = {
       id,
-      name: formData.get("name") as string,
-      role: formData.get("role") as string,
-      school: formData.get("school") as string,
-      content: formData.get("content") as string,
-      rating: Number(formData.get("rating")),
-      date: formData.get("date") as string,
-      source: formData.get("source") as string,
+      name,
+      role,
+      school,
+      content,
+      rating,
+      date,
+      source,
     }
 
-    // Validate the data
-    const validatedData = reviewSchema.parse(rawData)
+    const reviews = await getAllReviews()
+    const updatedReviews = reviews.map((r) => (r.id === id ? updatedReview : r))
 
-    // Get existing reviews
-    const existingReviews = await getAllReviews()
-
-    // Find the review to update
-    const reviewIndex = existingReviews.findIndex((review) => review.id === id)
-
-    if (reviewIndex === -1) {
-      return { success: false, error: "Review not found" }
-    }
-
-    // Update the review
-    const updatedReviews = [...existingReviews]
-    updatedReviews[reviewIndex] = validatedData
-
-    // Save to KV
-    await kv.set("reviews", updatedReviews)
-
-    // Revalidate the reviews page
-    revalidatePath("/reviews")
-
+    await kv.set(REVIEWS_KEY, updatedReviews)
     return { success: true }
   } catch (error) {
     console.error("Error updating review:", error)
-    return {
-      success: false,
-      error:
-        error instanceof z.ZodError
-          ? error.errors.map((e) => `${e.path}: ${e.message}`).join(", ")
-          : "Failed to update review",
-    }
+    return { success: false, error: "Failed to update review" }
   }
 }
 
-// Delete a review
 export async function deleteReview(id: string): Promise<{ success: boolean; error?: string }> {
   try {
-    // Get existing reviews
-    const existingReviews = await getAllReviews()
+    const reviews = await getAllReviews()
+    const updatedReviews = reviews.filter((r) => r.id !== id)
 
-    // Filter out the review to delete
-    const updatedReviews = existingReviews.filter((review) => review.id !== id)
-
-    // Save to KV
-    await kv.set("reviews", updatedReviews)
-
-    // Revalidate the reviews page
-    revalidatePath("/reviews")
-
+    await kv.set(REVIEWS_KEY, updatedReviews)
     return { success: true }
   } catch (error) {
     console.error("Error deleting review:", error)
@@ -156,20 +112,12 @@ export async function deleteReview(id: string): Promise<{ success: boolean; erro
   }
 }
 
-// Initialize reviews if they don't exist yet
 export async function initializeReviews(defaultReviews: Review[]): Promise<void> {
   try {
-    const existingReviews = await kv.get<Review[]>("reviews")
+    const existingReviews = await kv.get<Review[]>(REVIEWS_KEY)
 
-    if (!existingReviews) {
-      // Add IDs to the default reviews if they don't have them
-      const reviewsWithIds = defaultReviews.map((review) => ({
-        ...review,
-        id: review.id || crypto.randomUUID(),
-      }))
-
-      await kv.set("reviews", reviewsWithIds)
-      console.log("Reviews initialized successfully")
+    if (!existingReviews || existingReviews.length === 0) {
+      await kv.set(REVIEWS_KEY, defaultReviews)
     }
   } catch (error) {
     console.error("Error initializing reviews:", error)
