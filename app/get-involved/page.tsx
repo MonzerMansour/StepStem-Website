@@ -11,8 +11,8 @@ export default function GetInvolvedPage() {
         <div className="relative">
           <div className="relative h-[400px] w-full">
             <Image
-              src="/images/students-activity.png"
-              alt="Students engaged in STEM activities"
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/stepstem-get-involved-photo.jpg-bHnHdZ308WjT0xmsW1tREvScI5HAWu.jpeg"
+              alt="StepSTEM educator teaching a classroom of students about environmental science"
               fill
               className="object-cover"
               priority
