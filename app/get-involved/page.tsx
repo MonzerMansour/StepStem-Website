@@ -11,15 +11,15 @@ export default function GetInvolvedPage() {
         <div className="relative">
           <div className="relative h-[400px] w-full">
             <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_8198-OW5gwl6gk6pRfC09uKm01TF9hdZ7RQ.jpeg"
-              alt="StepSTEM educator teaching a classroom of elementary students about oil spills and environmental science"
+              src="/images/students-activity.png"
+              alt="Students engaged in STEM activities"
               fill
               className="object-cover"
               priority
             />
             <div className="absolute inset-0 bg-black/50" />
           </div>
-          <div className="absolute inset-0 flex items-start pt-16">
+          <div className="absolute inset-0 flex items-center">
             <div className="container mx-auto px-4">
               <h1 className="text-5xl md:text-6xl font-bold mb-4">
                 <span className="text-white">GET </span>

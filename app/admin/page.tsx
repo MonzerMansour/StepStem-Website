@@ -29,6 +29,14 @@ import {
   type Review,
 } from "../actions/review-actions"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import {
+  getAllArticles,
+  addArticle,
+  updateArticle,
+  deleteArticle,
+  initializeArticles,
+} from "../actions/article-actions"
+import type { Article } from "../types/article"
 
 // Default stats
 const DEFAULT_STATS = {
@@ -61,6 +69,38 @@ const DEFAULT_REVIEWS = [
   },
 ]
 
+// Default articles
+const DEFAULT_ARTICLES: Article[] = [
+  {
+    id: "singapore-oil-spill",
+    title: "Unraveling the Singapore Oil Spill Disaster",
+    slug: "singapore-oil-spill",
+    image: "/images/oil-spill-cleanup.webp",
+    date: "Jul 16, 2024",
+    readTime: "3 min read",
+    views: 15,
+    comments: 0,
+    excerpt: "An in-depth look at the recent oil spill in Singapore and its environmental impact on marine ecosystems.",
+    author: "stepSTEM24",
+    content:
+      "StepSTEM not only teaches students about the nature of oil spills and the STEM prospects available, but also emphasizes that this environmental problem remains relevant in the present day...",
+  },
+  {
+    id: "elementary-stem",
+    title: "Engaging Elementary Schoolers in STEM: StepSTEM Educational Program",
+    slug: "elementary-stem",
+    image: "/images/oil-bird.jpeg",
+    date: "Apr 1, 2024",
+    readTime: "2 min read",
+    views: 7,
+    comments: 0,
+    excerpt: "How our program is making STEM education accessible and engaging for elementary school students.",
+    author: "stepSTEM24",
+    content:
+      "Are you looking for an exciting and interactive way to introduce your elementary school students to STEM topics?...",
+  },
+]
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -78,6 +118,11 @@ export default function AdminPage() {
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null)
+  const [articles, setArticles] = useState<Article[]>([])
+  const [currentArticle, setCurrentArticle] = useState<Article | null>(null)
+  const [isArticleDialogOpen, setIsArticleDialogOpen] = useState(false)
+  const [isDeleteArticleDialogOpen, setIsDeleteArticleDialogOpen] = useState(false)
+  const [articleToDelete, setArticleToDelete] = useState<string | null>(null)
   const router = useRouter()
 
   // Check if user is authenticated
@@ -91,6 +136,7 @@ export default function AdminPage() {
           // Load stats if authenticated
           await loadStats()
           await loadReviews()
+          await loadArticles()
         }
       } catch (err) {
         console.error("Auth check error:", err)
@@ -132,6 +178,20 @@ export default function AdminPage() {
     }
   }
 
+  // Load all articles
+  const loadArticles = async () => {
+    try {
+      // Initialize articles with default data if they don't exist
+      await initializeArticles(DEFAULT_ARTICLES)
+
+      // Load articles
+      const allArticles = await getAllArticles()
+      setArticles(allArticles)
+    } catch (error) {
+      console.error("Error loading articles:", error)
+    }
+  }
+
   // Handle login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -147,6 +207,7 @@ export default function AdminPage() {
         setIsAuthenticated(true)
         await loadStats()
         await loadReviews()
+        await loadArticles()
       } else {
         setError("Invalid password. Please try again.")
       }
@@ -286,6 +347,85 @@ export default function AdminPage() {
     setIsDeleteDialogOpen(true)
   }
 
+  // Handle article form submission (add or update)
+  const handleArticleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSuccessMessage("")
+    setError("")
+
+    try {
+      const formData = new FormData(e.target as HTMLFormElement)
+
+      // Determine if this is an add or update operation
+      const isUpdate = !!formData.get("id")
+
+      // Call the appropriate server action
+      const result = isUpdate ? await updateArticle(formData) : await addArticle(formData)
+
+      if (result.success) {
+        setSuccessMessage(`Article ${isUpdate ? "updated" : "added"} successfully!`)
+        setIsArticleDialogOpen(false)
+        // Refresh articles
+        await loadArticles()
+      } else {
+        setError(result.error || `Failed to ${isUpdate ? "update" : "add"} article`)
+      }
+    } catch (err) {
+      setError("An error occurred while submitting the article")
+      console.error(err)
+    }
+  }
+
+  // Handle article deletion
+  const handleDeleteArticle = async () => {
+    if (!articleToDelete) return
+
+    try {
+      const result = await deleteArticle(articleToDelete)
+
+      if (result.success) {
+        setSuccessMessage("Article deleted successfully!")
+        setIsDeleteArticleDialogOpen(false)
+        setArticleToDelete(null)
+        // Refresh articles
+        await loadArticles()
+      } else {
+        setError(result.error || "Failed to delete article")
+      }
+    } catch (err) {
+      setError("An error occurred while deleting the article")
+      console.error(err)
+    }
+  }
+
+  // Open the article dialog for adding a new article
+  const handleAddArticle = () => {
+    setCurrentArticle(null)
+    setIsArticleDialogOpen(true)
+  }
+
+  // Open the article dialog for editing an existing article
+  const handleEditArticle = (article: Article) => {
+    setCurrentArticle(article)
+    setIsArticleDialogOpen(true)
+  }
+
+  // Open the delete confirmation dialog for articles
+  const handleDeleteArticleConfirmation = (id: string) => {
+    setArticleToDelete(id)
+    setIsDeleteArticleDialogOpen(true)
+  }
+
+  // Generate slug from title
+  const generateSlug = (title: string) => {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9 -]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .trim()
+  }
+
   // Format date for input field
   const formatDateForInput = (dateString: string) => {
     try {
@@ -365,6 +505,7 @@ export default function AdminPage() {
             <TabsTrigger value="homepage">Homepage Stats</TabsTrigger>
             <TabsTrigger value="california">California Chapter Stats</TabsTrigger>
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <TabsTrigger value="news">News Articles</TabsTrigger>
           </TabsList>
 
           <TabsContent value="homepage">
@@ -560,6 +701,75 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="news">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>News Articles Management</CardTitle>
+                  <CardDescription>Add, edit, or delete news articles that appear on the news page.</CardDescription>
+                </div>
+                <Button onClick={handleAddArticle} className="bg-cyan-500 hover:bg-cyan-600">
+                  <Plus className="mr-2 h-4 w-4" /> Add Article
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {articles.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    No articles found. Click "Add Article" to create your first article.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {articles.map((article) => (
+                      <Card key={article.id} className="overflow-hidden">
+                        <CardContent className="p-6">
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex-1">
+                              <h3 className="text-lg font-bold">{article.title}</h3>
+                              <p className="text-sm text-gray-500">
+                                By {article.author} • {article.date} • {article.readTime}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                Slug: /{article.slug} • Views: {article.views} • Comments: {article.comments}
+                              </p>
+                            </div>
+                            <div className="flex space-x-2 ml-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditArticle(article)}
+                                className="flex items-center"
+                              >
+                                <Pencil className="h-4 w-4 mr-1" /> Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteArticleConfirmation(article.id!)}
+                                className="flex items-center text-red-500 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" /> Delete
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-gray-700 line-clamp-2 mb-2">{article.excerpt}</p>
+                          {article.image && (
+                            <div className="relative h-32 w-48 rounded overflow-hidden">
+                              <img
+                                src={article.image || "/placeholder.svg"}
+                                alt={article.title}
+                                className="object-cover w-full h-full"
+                              />
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -665,6 +875,167 @@ export default function AdminPage() {
             <Button
               variant="destructive"
               onClick={handleDeleteReview}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Article Form Dialog */}
+      <Dialog open={isArticleDialogOpen} onOpenChange={setIsArticleDialogOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{currentArticle ? "Edit Article" : "Add New Article"}</DialogTitle>
+          </DialogHeader>
+          <form id="article-form" onSubmit={handleArticleSubmit}>
+            {currentArticle && <input type="hidden" name="id" value={currentArticle.id} />}
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="title" className="text-sm font-medium">
+                    Title *
+                  </label>
+                  <Input
+                    id="title"
+                    name="title"
+                    defaultValue={currentArticle?.title || ""}
+                    required
+                    onChange={(e) => {
+                      const slugInput = document.getElementById("slug") as HTMLInputElement
+                      if (slugInput && !currentArticle) {
+                        slugInput.value = generateSlug(e.target.value)
+                      }
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="slug" className="text-sm font-medium">
+                    Slug *
+                  </label>
+                  <Input id="slug" name="slug" defaultValue={currentArticle?.slug || ""} required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="author" className="text-sm font-medium">
+                    Author *
+                  </label>
+                  <Input id="author" name="author" defaultValue={currentArticle?.author || "stepSTEM24"} required />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="readTime" className="text-sm font-medium">
+                    Read Time *
+                  </label>
+                  <Input
+                    id="readTime"
+                    name="readTime"
+                    defaultValue={currentArticle?.readTime || "3 min read"}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="date" className="text-sm font-medium">
+                    Date *
+                  </label>
+                  <Input
+                    id="date"
+                    name="date"
+                    type="date"
+                    defaultValue={
+                      currentArticle?.date
+                        ? formatDateForInput(currentArticle.date)
+                        : formatDateForInput(new Date().toISOString())
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="views" className="text-sm font-medium">
+                    Views
+                  </label>
+                  <Input id="views" name="views" type="number" min="0" defaultValue={currentArticle?.views || 0} />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="comments" className="text-sm font-medium">
+                    Comments
+                  </label>
+                  <Input
+                    id="comments"
+                    name="comments"
+                    type="number"
+                    min="0"
+                    defaultValue={currentArticle?.comments || 0}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="image" className="text-sm font-medium">
+                  Cover Image URL or Path *
+                </label>
+                <Input id="image" name="image" type="text" defaultValue={currentArticle?.image || ""} required />
+                <p className="text-xs text-gray-500">
+                  Enter a full URL (https://example.com/image.jpg) or a relative path (/images/image.jpg)
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="excerpt" className="text-sm font-medium">
+                  Excerpt *
+                </label>
+                <Textarea
+                  id="excerpt"
+                  name="excerpt"
+                  rows={3}
+                  key={`excerpt-${currentArticle?.id || "new"}`}
+                  defaultValue={currentArticle?.excerpt || ""}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="content" className="text-sm font-medium">
+                  Content *
+                </label>
+                <Textarea
+                  id="content"
+                  name="content"
+                  rows={10}
+                  key={currentArticle?.id || "new"}
+                  defaultValue={currentArticle?.content || ""}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsArticleDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-cyan-500 hover:bg-cyan-600">
+                {currentArticle ? "Update Article" : "Add Article"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Article Confirmation Dialog */}
+      <Dialog open={isDeleteArticleDialogOpen} onOpenChange={setIsDeleteArticleDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Are you sure you want to delete this article? This action cannot be undone.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteArticleDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteArticle}
               className="bg-red-500 hover:bg-red-600 text-white"
             >
               Delete

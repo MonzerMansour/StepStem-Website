@@ -10,8 +10,8 @@ export default function DonatePage() {
         <div className="relative">
           <div className="relative h-[400px] w-full">
             <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/stepstem-donation-page-photo.jpg-Opg5FLznSLUt1OV8s6IZfhb3Ogo4bN.jpeg"
-              alt="StepSTEM educator teaching a classroom of elementary students"
+              src="/images/students-activity.png"
+              alt="Students engaged in STEM activities"
               fill
               className="object-cover"
               priority

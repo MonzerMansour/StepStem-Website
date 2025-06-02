@@ -6,59 +6,33 @@ import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import LikeButton from "@/components/like-button"
 import ShareButton from "@/components/share-button"
-import { Suspense } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-
-// Define blog post data
-const blogPosts = [
-  {
-    id: "singapore-oil-spill",
-    title: "Unraveling the Singapore Oil Spill Disaster",
-    image: "/images/oil-spill-cleanup.webp",
-    date: "Jul 16, 2024",
-    readTime: "3 min read",
-    views: 15,
-    comments: 0,
-    excerpt: "An in-depth look at the recent oil spill in Singapore and its environmental impact on marine ecosystems.",
-    author: "stepSTEM24",
-  },
-  {
-    id: "elementary-stem",
-    title: "Engaging Elementary Schoolers in STEM: StepSTEM Educational Program",
-    image: "/images/oil-bird.jpeg",
-    date: "Apr 1, 2024",
-    readTime: "2 min read",
-    views: 7,
-    comments: 0,
-    excerpt: "How our program is making STEM education accessible and engaging for elementary school students.",
-    author: "stepSTEM24",
-  },
-  {
-    id: "expanding-horizons",
-    title: "Expanding Horizons: StepSTEM Educational Program's Future Goals",
-    image: "/images/students-demo.webp",
-    date: "Apr 1, 2024",
-    readTime: "2 min read",
-    views: 11,
-    comments: 0,
-    excerpt: "A look at our program's growth plans and vision for the future of STEM education.",
-    author: "stepSTEM24",
-  },
-  {
-    id: "oil-spills-impact",
-    title: "Exploring the Impact of Oil Spills: StepSTEM Educational Program",
-    image: "/images/plant-hands.jpeg",
-    date: "Apr 1, 2024",
-    readTime: "3 min read",
-    views: 4,
-    comments: 0,
-    excerpt:
-      "Understanding the environmental consequences of oil spills and how we teach students about this critical issue.",
-    author: "stepSTEM24",
-  },
-]
+import { getAllArticles } from "../actions/article-actions"
+import type { Article } from "../types/article"
 
 export default function NewsPage() {
+  const [blogPosts, setBlogPosts] = useState<Article[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadArticles() {
+      try {
+        const articles = await getAllArticles()
+        // Sort articles by date (newest first)
+        const sortedArticles = articles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        setBlogPosts(sortedArticles)
+      } catch (error) {
+        console.error("Error loading articles:", error)
+        setBlogPosts([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadArticles()
+  }, [])
+
   return (
     <>
       {/* Hero Section */}
@@ -96,56 +70,88 @@ export default function NewsPage() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
-            {blogPosts.map((post, index) => (
-              <article key={post.id} className="mb-16">
-                <div className="grid md:grid-cols-2 gap-8 items-start">
-                  <div className="relative h-[300px] rounded-lg overflow-hidden">
-                    <Image src={post.image || "/placeholder.svg"} alt={post.title} fill className="object-cover" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="relative h-8 w-8 rounded-full bg-gray-200 overflow-hidden">
-                        <Image src="/images/logo.png" alt="Author" fill className="object-cover" />
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        {post.author}
-                        <div className="flex items-center gap-2">
-                          <span>{post.date}</span>
-                          <span>•</span>
-                          <span>{post.readTime}</span>
+            {loading ? (
+              // Loading skeleton
+              <div className="space-y-16">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="grid md:grid-cols-2 gap-8 items-start">
+                    <Skeleton className="h-[300px] rounded-lg" />
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-3 w-32" />
                         </div>
                       </div>
-                    </div>
-
-                    <Link href={`/news/${post.id}`}>
-                      <h2 className="text-3xl font-bold mb-3 hover:text-cyan-500 transition-colors">{post.title}</h2>
-                    </Link>
-
-                    <p className="text-gray-700 mb-4">{post.excerpt}</p>
-
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <div className="flex items-center gap-4">
-                        <span>{post.views} views</span>
-                        <ShareButton
-                          url={`${typeof window !== "undefined" ? window.location.origin : ""}/news/${post.id}`}
-                          title={`Share: ${post.title}`}
-                        />
+                      <Skeleton className="h-8 w-3/4" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                      <div className="flex justify-between items-center">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-8 w-16" />
                       </div>
-                      <Suspense
-                        fallback={
-                          <div className="flex items-center gap-2">
-                            <Skeleton className="h-8 w-8 rounded-full" />
-                            <Skeleton className="h-4 w-4" />
-                          </div>
-                        }
-                      >
-                        <LikeButton articleId={post.id} />
-                      </Suspense>
                     </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                ))}
+              </div>
+            ) : blogPosts.length === 0 ? (
+              <div className="text-center py-16">
+                <h2 className="text-2xl font-bold mb-4">No articles found</h2>
+                <p className="text-gray-600">Check back later for new articles and updates.</p>
+              </div>
+            ) : (
+              blogPosts.map((post, index) => (
+                <article key={post.id} className="mb-16">
+                  <div className="grid md:grid-cols-2 gap-8 items-start">
+                    <div className="relative h-[300px] rounded-lg overflow-hidden">
+                      <Image src={post.image || "/placeholder.svg"} alt={post.title} fill className="object-cover" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="relative h-8 w-8 rounded-full bg-gray-200 overflow-hidden">
+                          <Image src="/images/logo.png" alt="Author" fill className="object-cover" />
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {post.author}
+                          <div className="flex items-center gap-2">
+                            <span>{post.date}</span>
+                            <span>•</span>
+                            <span>{post.readTime}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Link href={`/news/${post.slug}`}>
+                        <h2 className="text-3xl font-bold mb-3 hover:text-cyan-500 transition-colors">{post.title}</h2>
+                      </Link>
+
+                      <p className="text-gray-700 mb-4">{post.excerpt}</p>
+
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex items-center gap-4">
+                          <span>{post.views} views</span>
+                          <ShareButton
+                            url={`${typeof window !== "undefined" ? window.location.origin : ""}/news/${post.slug}`}
+                            title={`Share: ${post.title}`}
+                          />
+                        </div>
+                        <Suspense
+                          fallback={
+                            <div className="flex items-center gap-2">
+                              <Skeleton className="h-8 w-8 rounded-full" />
+                              <Skeleton className="h-4 w-4" />
+                            </div>
+                          }
+                        >
+                          <LikeButton articleId={post.id} />
+                        </Suspense>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))
+            )}
           </div>
         </div>
       </section>

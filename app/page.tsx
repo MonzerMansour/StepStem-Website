@@ -340,12 +340,7 @@ export default function Home() {
             <ContactForm />
 
             <div className="mt-12 text-center">
-              <p className="text-lg font-bold mb-2">EMAIL</p>
-              <a href="mailto:stepSTEM2024@gmail.com" className="text-cyan-400 hover:underline">
-                stepSTEM2024@gmail.com
-              </a>
-
-              <div className="flex justify-center gap-4 mt-6">
+              <div className="flex justify-center gap-4">
                 <a
                   href="https://www.instagram.com/step_stem_/"
                   target="_blank"
