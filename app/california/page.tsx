@@ -51,7 +51,7 @@ export default function CaliforniaChapterPage() {
       name: "Rohit Pandravada",
       role: "Co-President of StepSTEM",
       image: "/images/rohit.png",
-      bio: "Rohit Pandravada is a member of the class of 2028 at Santa Clara High School. He is committed to StepSTEM's mission of spreading joy and knowledge throughout the local community. In his free time, he finds passion in singing, playing the violin, playing tennis, and helping the community.",
+      bio: "Rohit Pandravada is a member of the class of 2028 at Santa Clara High School. He is committed to StepSTEM's mission of spreading joy and knowledge throughout the local children community. In his free time, he finds passion in singing, playing the violin, playing tennis, and helping the community.",
     },
     {
       name: "Arhaan Swaminath",

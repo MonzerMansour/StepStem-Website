@@ -1,11 +1,9 @@
 "use server"
 
-import crypto from "crypto"
 import { kv } from "@vercel/kv"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { z } from "zod"
-import { verifyRecaptcha } from "./verify-recaptcha"
 
 // Define the schema for our stats
 const statsSchema = z.object({
@@ -20,91 +18,45 @@ const chapterStatsSchema = z.object({
   studentsInspired: z.number().int().min(0),
 })
 
+// Password for admin access
+const ADMIN_PASSWORD = "crazyshot92819"
+
 // Session duration in seconds (24 hours)
 const SESSION_DURATION = 24 * 60 * 60
 
 // Verify admin password
 export async function verifyAdminPassword(formData: FormData) {
-  try {
-    const password = formData.get("password") as string
-    const recaptchaToken = formData.get("recaptchaToken") as string | null
+  const password = formData.get("password") as string
 
-    // Verify reCAPTCHA first if token is provided
-    if (recaptchaToken) {
-      try {
-        const recaptchaResult = await verifyRecaptcha(recaptchaToken, "admin_login")
-        if (!recaptchaResult.success) {
-          console.warn("reCAPTCHA verification failed, but proceeding with login check")
-        }
-      } catch (error) {
-        console.error("reCAPTCHA verification error:", error)
-        // Continue with password check even if reCAPTCHA fails
-      }
-    }
+  if (password === ADMIN_PASSWORD) {
+    // Set a secure cookie for the admin session
+    const sessionId = crypto.randomUUID()
+    cookies().set("admin_session", sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: SESSION_DURATION,
+      path: "/",
+    })
 
-    // Make sure we have a password to check
-    if (!password) {
-      return { success: false, error: "Password is required" }
-    }
+    // Store the session in KV with expiration
+    await kv.set(`admin_session:${sessionId}`, true, { ex: SESSION_DURATION })
 
-    // Get the admin password from environment variables
-    const adminPassword = process.env.ADMIN_PASSWORD
-
-    // If no admin password is configured, reject the login
-    if (!adminPassword) {
-      console.error("ADMIN_PASSWORD environment variable is not set")
-      return { success: false, error: "Admin authentication is not configured" }
-    }
-
-    if (password === adminPassword) {
-      // Set a secure cookie for the admin session
-      const sessionId = crypto.randomUUID()
-      cookies().set("admin_session", sessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: SESSION_DURATION,
-        path: "/",
-      })
-
-      // Store the session in KV with expiration
-      try {
-        await kv.set(`admin_session:${sessionId}`, true, { ex: SESSION_DURATION })
-      } catch (kvError) {
-        console.error("Error setting session in KV:", kvError)
-        // Still return success since the cookie is set
-      }
-
-      return { success: true }
-    }
-
-    return { success: false, error: "Invalid password" }
-  } catch (error) {
-    console.error("Error in verifyAdminPassword:", error)
-    return { success: false, error: "Authentication error" }
+    return { success: true }
   }
+
+  return { success: false, error: "Invalid password" }
 }
 
 // Check if user is authenticated
 export async function checkAdminAuth() {
-  try {
-    const sessionId = cookies().get("admin_session")?.value
+  const sessionId = cookies().get("admin_session")?.value
 
-    if (!sessionId) {
-      return false
-    }
-
-    try {
-      const isValid = await kv.get(`admin_session:${sessionId}`)
-      return !!isValid
-    } catch (kvError) {
-      console.error("Error checking session in KV:", kvError)
-      // If KV fails, fall back to just checking if the cookie exists
-      return true
-    }
-  } catch (error) {
-    console.error("Error in checkAdminAuth:", error)
+  if (!sessionId) {
     return false
   }
+
+  const isValid = await kv.get(`admin_session:${sessionId}`)
+  return !!isValid
 }
 
 // Logout admin

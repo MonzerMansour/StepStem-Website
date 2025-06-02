@@ -4,9 +4,6 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { sendContactEmailJS } from "@/app/actions/send-email-emailjs"
-import { verifyRecaptcha } from "@/app/actions/verify-recaptcha"
-import { useRecaptcha } from "@/hooks/use-recaptcha"
-import { Shield, Loader2 } from "lucide-react"
 
 // We'll load EmailJS from CDN
 declare global {
@@ -27,13 +24,6 @@ export default function ContactForm() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [emailJSLoaded, setEmailJSLoaded] = useState(false)
-
-  const {
-    isLoaded: recaptchaLoaded,
-    error: recaptchaError,
-    executeRecaptcha,
-    isDisabled: recaptchaDisabled,
-  } = useRecaptcha()
 
   // Load EmailJS script
   useEffect(() => {
@@ -62,7 +52,6 @@ export default function ContactForm() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  // Update the handleSubmit function to handle potential null values better
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -73,64 +62,33 @@ export default function ContactForm() {
         throw new Error("Email service is not loaded yet. Please try again.")
       }
 
-      // Skip reCAPTCHA if it's disabled
-      let recaptchaVerified = false
-
-      if (recaptchaLoaded && !recaptchaDisabled) {
-        try {
-          // Execute reCAPTCHA
-          const recaptchaToken = await executeRecaptcha("contact_form")
-          if (recaptchaToken) {
-            // Verify reCAPTCHA on server
-            try {
-              const recaptchaResult = await verifyRecaptcha(recaptchaToken, "contact_form")
-              if (recaptchaResult && recaptchaResult.success) {
-                recaptchaVerified = true
-              }
-            } catch (recaptchaErr) {
-              console.error("reCAPTCHA verification error:", recaptchaErr)
-            }
-          }
-        } catch (recaptchaExecErr) {
-          console.error("reCAPTCHA execution error:", recaptchaExecErr)
-        }
-      }
-
-      console.log("reCAPTCHA status:", recaptchaDisabled ? "disabled" : recaptchaVerified ? "verified" : "failed")
-
       // Call the server action to process the email
-      try {
-        const serverResult = await sendContactEmailJS(formData)
+      const serverResult = await sendContactEmailJS(formData)
 
-        if (!serverResult || !serverResult.success) {
-          throw new Error(serverResult?.error || "Failed to process email request")
-        }
-
-        // Initialize EmailJS with the public key from the server action
-        window.emailjs.init(serverResult.publicKey)
-
-        // Send the email using the client-side EmailJS
-        console.log("Sending email with client-side EmailJS...")
-        const result = await window.emailjs.send(serverResult.serviceId, serverResult.templateId, {
-          name: formData.name,
-          email: formData.email,
-          school: formData.school,
-          message: formData.message || `Contact form submission from ${formData.school}.`,
-          recaptchaVerified: recaptchaVerified ? "Yes" : "No",
-        })
-
-        console.log("Email sent successfully:", result)
-        setIsSubmitted(true)
-        setFormData({ name: "", email: "", school: "", message: "" })
-
-        // Reset success message after 5 seconds
-        setTimeout(() => {
-          setIsSubmitted(false)
-        }, 5000)
-      } catch (emailErr) {
-        console.error("Email sending error:", emailErr)
-        throw new Error(`Failed to send email: ${emailErr instanceof Error ? emailErr.message : "Unknown error"}`)
+      if (!serverResult.success) {
+        throw new Error(serverResult.error || "Failed to process email request")
       }
+
+      // Initialize EmailJS with the public key from the server action
+      window.emailjs.init(serverResult.publicKey)
+
+      // Send the email using the client-side EmailJS
+      console.log("Sending email with client-side EmailJS...")
+      const result = await window.emailjs.send(serverResult.serviceId, serverResult.templateId, {
+        name: formData.name,
+        email: formData.email,
+        school: formData.school,
+        message: formData.message || `Contact form submission from ${formData.school}.`,
+      })
+
+      console.log("Email sent successfully:", result)
+      setIsSubmitted(true)
+      setFormData({ name: "", email: "", school: "", message: "" })
+
+      // Reset success message after 5 seconds
+      setTimeout(() => {
+        setIsSubmitted(false)
+      }, 5000)
     } catch (err) {
       console.error("Form submission error:", err)
       setError(
@@ -159,13 +117,6 @@ export default function ContactForm() {
             </div>
           )}
 
-          {recaptchaError && !recaptchaDisabled && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-              <strong className="font-bold">Security Error:</strong>
-              <span className="block sm:inline"> {recaptchaError}</span>
-            </div>
-          )}
-
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-1">
               Name
@@ -179,7 +130,6 @@ export default function ContactForm() {
               onChange={handleChange}
               className="w-full px-4 py-2 rounded-md border border-gray-700 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
               placeholder="Your name"
-              disabled={isSubmitting}
             />
           </div>
 
@@ -196,7 +146,6 @@ export default function ContactForm() {
               onChange={handleChange}
               className="w-full px-4 py-2 rounded-md border border-gray-700 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
               placeholder="Your email"
-              disabled={isSubmitting}
             />
           </div>
 
@@ -213,7 +162,6 @@ export default function ContactForm() {
               onChange={handleChange}
               className="w-full px-4 py-2 rounded-md border border-gray-700 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
               placeholder="School name"
-              disabled={isSubmitting}
             />
           </div>
 
@@ -229,43 +177,16 @@ export default function ContactForm() {
               onChange={handleChange}
               className="w-full px-4 py-2 rounded-md border border-gray-700 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
               placeholder="Tell us about your needs or any questions you have"
-              disabled={isSubmitting}
             />
           </div>
 
           <Button
             type="submit"
             className="w-full bg-cyan-500 hover:bg-cyan-600 transition-colors"
-            disabled={isSubmitting || !emailJSLoaded}
+            disabled={isSubmitting}
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              <>
-                <Shield className="mr-2 h-4 w-4" />
-                SUBMIT
-              </>
-            )}
+            {isSubmitting ? "Submitting..." : "SUBMIT"}
           </Button>
-
-          {!emailJSLoaded && <p className="text-xs text-gray-400 text-center">Loading email service...</p>}
-
-          {!recaptchaDisabled && (
-            <p className="text-xs text-gray-400 text-center">
-              This site is protected by reCAPTCHA and the Google{" "}
-              <a href="https://policies.google.com/privacy" className="text-cyan-400 hover:underline">
-                Privacy Policy
-              </a>{" "}
-              and{" "}
-              <a href="https://policies.google.com/terms" className="text-cyan-400 hover:underline">
-                Terms of Service
-              </a>{" "}
-              apply.
-            </p>
-          )}
         </>
       )}
     </form>
