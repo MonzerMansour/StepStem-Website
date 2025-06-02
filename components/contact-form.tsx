@@ -1,35 +1,143 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { sendContactEmailJS } from "@/app/actions/send-email-emailjs"
+import { verifyRecaptcha } from "@/app/actions/verify-recaptcha"
+import { useRecaptcha } from "@/hooks/use-recaptcha"
+import { Shield, Loader2 } from "lucide-react"
 
-interface ContactFormProps {
-  onSubmit: (data: { name: string; email: string; message: string }) => void
+// We'll load EmailJS from CDN
+declare global {
+  interface Window {
+    emailjs: any
+  }
 }
 
-const ContactForm: React.FC<ContactFormProps> = ({ onSubmit }) => {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [message, setMessage] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submissionError, setSubmissionError] = useState<string | null>(null)
-  const [submissionSuccess, setSubmissionSuccess] = useState(false)
+export default function ContactForm() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    school: "",
+    message: "",
+  })
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [emailJSLoaded, setEmailJSLoaded] = useState(false)
+
+  const {
+    isLoaded: recaptchaLoaded,
+    error: recaptchaError,
+    executeRecaptcha,
+    isDisabled: recaptchaDisabled,
+  } = useRecaptcha()
+
+  // Load EmailJS script
+  useEffect(() => {
+    const script = document.createElement("script")
+    script.src = "https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"
+    script.async = true
+    script.onload = () => {
+      setEmailJSLoaded(true)
+      console.log("EmailJS script loaded successfully")
+    }
+    script.onerror = () => {
+      console.error("Failed to load EmailJS script")
+      setError("Failed to load email service. Please try again later.")
+    }
+    document.body.appendChild(script)
+
+    return () => {
+      if (script.parentNode) {
+        document.body.removeChild(script)
+      }
+    }
+  }, [])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  // Update the handleSubmit function to handle potential null values better
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     setIsSubmitting(true)
-    setSubmissionError(null)
-    setSubmissionSuccess(false)
+    setError(null)
 
     try {
-      onSubmit({ name, email, message })
-      setSubmissionSuccess(true)
-      setName("")
-      setEmail("")
-      setMessage("")
-    } catch (error: any) {
-      setSubmissionError(error.message || "An unexpected error occurred.")
+      if (!emailJSLoaded) {
+        throw new Error("Email service is not loaded yet. Please try again.")
+      }
+
+      // Skip reCAPTCHA if it's disabled
+      let recaptchaVerified = false
+
+      if (recaptchaLoaded && !recaptchaDisabled) {
+        try {
+          // Execute reCAPTCHA
+          const recaptchaToken = await executeRecaptcha("contact_form")
+          if (recaptchaToken) {
+            // Verify reCAPTCHA on server
+            try {
+              const recaptchaResult = await verifyRecaptcha(recaptchaToken, "contact_form")
+              if (recaptchaResult && recaptchaResult.success) {
+                recaptchaVerified = true
+              }
+            } catch (recaptchaErr) {
+              console.error("reCAPTCHA verification error:", recaptchaErr)
+            }
+          }
+        } catch (recaptchaExecErr) {
+          console.error("reCAPTCHA execution error:", recaptchaExecErr)
+        }
+      }
+
+      console.log("reCAPTCHA status:", recaptchaDisabled ? "disabled" : recaptchaVerified ? "verified" : "failed")
+
+      // Call the server action to process the email
+      try {
+        const serverResult = await sendContactEmailJS(formData)
+
+        if (!serverResult || !serverResult.success) {
+          throw new Error(serverResult?.error || "Failed to process email request")
+        }
+
+        // Initialize EmailJS with the public key from the server action
+        window.emailjs.init(serverResult.publicKey)
+
+        // Send the email using the client-side EmailJS
+        console.log("Sending email with client-side EmailJS...")
+        const result = await window.emailjs.send(serverResult.serviceId, serverResult.templateId, {
+          name: formData.name,
+          email: formData.email,
+          school: formData.school,
+          message: formData.message || `Contact form submission from ${formData.school}.`,
+          recaptchaVerified: recaptchaVerified ? "Yes" : "No",
+        })
+
+        console.log("Email sent successfully:", result)
+        setIsSubmitted(true)
+        setFormData({ name: "", email: "", school: "", message: "" })
+
+        // Reset success message after 5 seconds
+        setTimeout(() => {
+          setIsSubmitted(false)
+        }, 5000)
+      } catch (emailErr) {
+        console.error("Email sending error:", emailErr)
+        throw new Error(`Failed to send email: ${emailErr instanceof Error ? emailErr.message : "Unknown error"}`)
+      }
+    } catch (err) {
+      console.error("Form submission error:", err)
+      setError(
+        err instanceof Error
+          ? `Failed to send email: ${err.message}`
+          : "An unexpected error occurred. Please try again later.",
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -37,82 +145,129 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-          Name
-        </label>
-        <input
-          type="text"
-          id="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          required
-        />
-      </div>
-
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          Email
-        </label>
-        <input
-          type="email"
-          id="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          required
-        />
-      </div>
-
-      <div>
-        <label htmlFor="message" className="block text-sm font-medium text-gray-700">
-          Message
-        </label>
-        <textarea
-          id="message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          rows={4}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          required
-        />
-      </div>
-
-      <div>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-        >
-          {isSubmitting ? "Submitting..." : "Submit"}
-        </button>
-      </div>
-
-      {submissionError && (
-        <div className="rounded-md bg-red-50 p-4">
-          <div className="flex">
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">There was an error submitting your form</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>{submissionError}</p>
-              </div>
-            </div>
-          </div>
+      {isSubmitted ? (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Thank you!</strong>
+          <span className="block sm:inline"> We've received your message and will get back to you soon.</span>
         </div>
-      )}
-
-      {submissionSuccess && (
-        <div className="rounded-md bg-green-50 p-4">
-          <div className="flex">
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-green-800">Your message has been sent!</h3>
+      ) : (
+        <>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+              <strong className="font-bold">Error:</strong>
+              <span className="block sm:inline"> {error}</span>
             </div>
+          )}
+
+          {recaptchaError && !recaptchaDisabled && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+              <strong className="font-bold">Security Error:</strong>
+              <span className="block sm:inline"> {recaptchaError}</span>
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium mb-1">
+              Name
+            </label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full px-4 py-2 rounded-md border border-gray-700 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              placeholder="Your name"
+              disabled={isSubmitting}
+            />
           </div>
-        </div>
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-1">
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-4 py-2 rounded-md border border-gray-700 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              placeholder="Your email"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="school" className="block text-sm font-medium mb-1">
+              Interested School
+            </label>
+            <input
+              id="school"
+              name="school"
+              type="text"
+              required
+              value={formData.school}
+              onChange={handleChange}
+              className="w-full px-4 py-2 rounded-md border border-gray-700 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              placeholder="School name"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="message" className="block text-sm font-medium mb-1">
+              Message
+            </label>
+            <textarea
+              id="message"
+              name="message"
+              rows={4}
+              value={formData.message}
+              onChange={handleChange}
+              className="w-full px-4 py-2 rounded-md border border-gray-700 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              placeholder="Tell us about your needs or any questions you have"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full bg-cyan-500 hover:bg-cyan-600 transition-colors"
+            disabled={isSubmitting || !emailJSLoaded}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Shield className="mr-2 h-4 w-4" />
+                SUBMIT
+              </>
+            )}
+          </Button>
+
+          {!emailJSLoaded && <p className="text-xs text-gray-400 text-center">Loading email service...</p>}
+
+          {!recaptchaDisabled && (
+            <p className="text-xs text-gray-400 text-center">
+              This site is protected by reCAPTCHA and the Google{" "}
+              <a href="https://policies.google.com/privacy" className="text-cyan-400 hover:underline">
+                Privacy Policy
+              </a>{" "}
+              and{" "}
+              <a href="https://policies.google.com/terms" className="text-cyan-400 hover:underline">
+                Terms of Service
+              </a>{" "}
+              apply.
+            </p>
+          )}
+        </>
       )}
     </form>
   )
 }
-
-export default ContactForm

@@ -4,13 +4,12 @@ import { useEffect, useState } from "react"
 import { getRecaptchaConfig } from "@/app/actions/get-recaptcha-config"
 
 export function useRecaptcha() {
-  const [isLoaded, setIsLoaded] = useState(true) // Always loaded since disabled
+  const [isLoaded, setIsLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isDisabled, setIsDisabled] = useState(true) // Always disabled for now
+  const [isDisabled, setIsDisabled] = useState(false)
   const [siteKey, setSiteKey] = useState<string | null>(null)
 
   useEffect(() => {
-    // Fetch reCAPTCHA configuration from server
     const initializeRecaptcha = async () => {
       try {
         const config = await getRecaptchaConfig()
@@ -41,8 +40,8 @@ export function useRecaptcha() {
 
         // Create error handler for reCAPTCHA
         window.recaptchaErrorCallback = () => {
-          console.error("reCAPTCHA failed to load - this may be due to domain restrictions or network issues")
-          setError("reCAPTCHA failed to load. This may be due to domain restrictions.")
+          console.error("reCAPTCHA failed to load")
+          setError("reCAPTCHA failed to load")
           setIsDisabled(true)
           setIsLoaded(true)
         }
@@ -64,10 +63,10 @@ export function useRecaptcha() {
           }
         }
 
-        // Add timeout to handle cases where reCAPTCHA doesn't load
+        // Add timeout
         const timeout = setTimeout(() => {
           if (!isLoaded) {
-            console.warn("reCAPTCHA loading timeout - proceeding without it")
+            console.warn("reCAPTCHA loading timeout")
             setIsDisabled(true)
             setIsLoaded(true)
           }
@@ -90,15 +89,34 @@ export function useRecaptcha() {
       }
     }
 
-    // reCAPTCHA is temporarily disabled to fix deployment issues
-    console.log("reCAPTCHA is temporarily disabled")
-    // initializeRecaptcha() // Commented out to disable reCAPTCHA
+    initializeRecaptcha()
   }, [])
 
   const executeRecaptcha = async (action: string): Promise<string | null> => {
-    // Always return null since reCAPTCHA is disabled
-    console.log(`reCAPTCHA execution skipped for action: ${action} (temporarily disabled)`)
-    return null
+    if (isDisabled || !siteKey) {
+      console.log("reCAPTCHA execution skipped")
+      return null
+    }
+
+    if (!isLoaded || !window.grecaptcha) {
+      console.error("reCAPTCHA not loaded")
+      return null
+    }
+
+    try {
+      if (typeof window.grecaptcha.execute !== "function") {
+        console.error("reCAPTCHA execute method not available")
+        return null
+      }
+
+      console.log(`Executing reCAPTCHA for action: ${action}`)
+      const token = await window.grecaptcha.execute(siteKey, { action })
+      console.log("reCAPTCHA token generated successfully")
+      return token
+    } catch (err) {
+      console.error("Failed to execute reCAPTCHA:", err)
+      return null
+    }
   }
 
   return { isLoaded, error, executeRecaptcha, isDisabled }
