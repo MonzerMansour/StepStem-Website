@@ -79,7 +79,7 @@ export default function CaliforniaChapterPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto text-center mb-16">
             <h2 className="text-5xl font-bold mb-4">
-              TEAM MEMBERS<span className="text-cyan-500">.</span>
+              TEAM MEMBERS<span className="text-cyan-500">{""}</span>
             </h2>
           </div>
 

@@ -22,6 +22,8 @@ const articleSchema = z.object({
 // Get all articles from KV
 export async function getAllArticles(): Promise<Article[]> {
   try {
+    // Check if KV is available
+    await kv.ping()
     const articles = await kv.get("articles")
     return (articles as Article[]) || []
   } catch (error) {
@@ -33,6 +35,7 @@ export async function getAllArticles(): Promise<Article[]> {
 // Initialize articles with default data
 export async function initializeArticles(defaultArticles: Article[]) {
   try {
+    await kv.ping()
     const existingArticles = await kv.get("articles")
     if (!existingArticles || (Array.isArray(existingArticles) && existingArticles.length === 0)) {
       await kv.set("articles", defaultArticles)
@@ -46,6 +49,7 @@ export async function initializeArticles(defaultArticles: Article[]) {
 // Add a new article
 export async function addArticle(formData: FormData) {
   try {
+    await kv.ping()
     const rawData = {
       id: formData.get("slug") as string, // Use slug as ID
       title: formData.get("title") as string,
@@ -88,6 +92,7 @@ export async function addArticle(formData: FormData) {
 // Update an existing article
 export async function updateArticle(formData: FormData) {
   try {
+    await kv.ping()
     const id = formData.get("id") as string
     const rawData = {
       id,
@@ -131,6 +136,7 @@ export async function updateArticle(formData: FormData) {
 // Delete an article
 export async function deleteArticle(id: string) {
   try {
+    await kv.ping()
     // Get existing articles
     const existingArticles = await getAllArticles()
 
