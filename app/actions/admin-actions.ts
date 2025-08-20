@@ -11,6 +11,7 @@ const statsSchema = z.object({
   schoolsVisited: z.number().int().min(0),
   classesTaught: z.number().int().min(0),
   studentsInspired: z.number().int().min(0),
+  countriesImpacted: z.number().int().min(0),
 })
 
 const chapterStatsSchema = z.object({
@@ -130,6 +131,7 @@ export async function getHomepageStatsFromKV() {
         schoolsVisited: 8,
         classesTaught: 20,
         studentsInspired: 500,
+        countriesImpacted: 3,
       }
     }
 
@@ -140,6 +142,7 @@ export async function getHomepageStatsFromKV() {
       schoolsVisited: 8,
       classesTaught: 20,
       studentsInspired: 500,
+      countriesImpacted: 3,
     }
   }
 }
@@ -151,6 +154,7 @@ export async function updateHomepageStatsDirectly(formData: FormData) {
       schoolsVisited: Number.parseInt(formData.get("schoolsVisited") as string, 10),
       classesTaught: Number.parseInt(formData.get("classesTaught") as string, 10),
       studentsInspired: Number.parseInt(formData.get("studentsInspired") as string, 10),
+      countriesImpacted: Number.parseInt(formData.get("countriesImpacted") as string, 10),
     }
 
     // Validate the data

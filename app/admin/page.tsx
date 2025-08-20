@@ -51,6 +51,7 @@ const DEFAULT_STATS = {
   schoolsVisited: 8,
   classesTaught: 20,
   studentsInspired: 500,
+  countriesImpacted: 3,
 }
 
 // Default reviews
@@ -786,7 +787,7 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <form id="homepage-form" onSubmit={handleHomepageStatsUpdate} className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                     <div className="space-y-2">
                       <label htmlFor="schoolsVisited" className="text-sm font-medium">
                         Schools Visited
@@ -823,6 +824,19 @@ export default function AdminPage() {
                         type="number"
                         min="0"
                         defaultValue={homepageStats.studentsInspired}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="countriesImpacted" className="text-sm font-medium">
+                        Countries Impacted
+                      </label>
+                      <Input
+                        id="countriesImpacted"
+                        name="countriesImpacted"
+                        type="number"
+                        min="0"
+                        defaultValue={homepageStats.countriesImpacted}
                         required
                       />
                     </div>

@@ -18,6 +18,7 @@ const DEFAULT_STATS = {
   schoolsVisited: 8,
   classesTaught: 20,
   studentsInspired: 500,
+  countriesImpacted: 3,
 }
 
 export default function Home() {
@@ -37,7 +38,8 @@ export default function Home() {
         if (
           homeStats.schoolsVisited !== stats.schoolsVisited ||
           homeStats.classesTaught !== stats.classesTaught ||
-          homeStats.studentsInspired !== stats.studentsInspired
+          homeStats.studentsInspired !== stats.studentsInspired ||
+          (homeStats.countriesImpacted || 3) !== (stats.countriesImpacted || 3)
         ) {
           setStats(homeStats)
           setRefreshKey((prev) => prev + 1)
@@ -112,9 +114,9 @@ export default function Home() {
               textColor="text-white"
             />
             <StatCard
-              key={`future-${refreshKey}`}
-              number="1"
-              label="Future To Work Towards"
+              key={`countries-${refreshKey}`}
+              number={(stats.countriesImpacted || 3).toString()}
+              label="Countries Impacted"
               bgColor="bg-cyan-500"
               textColor="text-white"
             />
@@ -275,7 +277,7 @@ export default function Home() {
                     strokeLinejoin="round"
                     className="h-6 w-6 text-white"
                   >
-                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                    <path d="M14 2 14 8 20 8" />
                     <polyline points="14 2 14 8 20 8" />
                   </svg>
                 </div>
